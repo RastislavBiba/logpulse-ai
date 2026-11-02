@@ -1,0 +1,12 @@
+services:
+  ai-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_backend_service
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - GEMINI_API_KEY=${AI_API_KEY}
+      - NODE_ENV=${NODE_ENV:-development}
+    restart: unless-stopped
