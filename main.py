@@ -1,18 +1,29 @@
 import os
-import time
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai.errors import APIError
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("logpulse")
 
 app = FastAPI(title="LogPulse AI")
 
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
-# Primárny a záložný model pri nedostupnosti
-PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODEL = "gemini-2.5-flash-lite"
+# 1. Štatisticky najstabilnejšie a najdostupnejšie modely pre textovú analýzu
+PREFERRED_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+]
 
 
 class LogRequest(BaseModel):
@@ -29,31 +40,54 @@ def health_check():
     return {"status": "healthy"}
 
 
-def call_gemini_with_retry(prompt: str, max_retries: int = 3) -> str:
-    """Zavolá Gemini API s automatickým opakovaním pri 503 a fallbackom."""
-    models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL]
+def get_all_supported_models() -> list[str]:
+    """
+    Vráti zoznam preferovaných modelov a doplní ich o akékoľvek ďalšie
+    aktívne modely priamo z Google API cez client.models.list().
+    """
+    models = list(PREFERRED_MODELS)
+    if client:
+        try:
+            for m in client.models.list():
+                # Získa čistý názov modelu (odstráni predponu 'models/')
+                model_name = m.name.replace("models/", "")
+                # Zaujímajú nás iba textové/analytické Gemini modely
+                if "gemini" in model_name and model_name not in models:
+                    models.append(model_name)
+        except Exception as e:
+            logger.warning(f"Nepodarilo sa načítať dynamický zoznam modelov: {e}")
+    return models
 
-    for model_name in models_to_try:
-        delay = 1.5
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                )
-                return response.text
-            except APIError as e:
-                # Ak je model preťažený (503 alebo RESOURCE_EXHAUSTED), počkáme a skúsime znova
-                if e.code in (503, 429) and attempt < max_retries - 1:
-                    time.sleep(delay)
-                    delay *= 2
-                    continue
-                # Ak vyčerpal pokusy pre primárny model, vyskúša fallback model
-                break
-            except Exception:
-                raise
 
-    raise RuntimeError("Všetky modely Gemini sú momentálne preťažené. Skúste znova o chvíľu.")
+def generate_with_fallback(prompt: str) -> tuple[str, str]:
+    """
+    Postupne prechádza modely a použije prvý, ktorý vráti odpoveď.
+    """
+    candidates = get_all_supported_models()
+    last_error = None
+
+    for model_name in candidates:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return response.text, model_name
+        except APIError as e:
+            logger.warning(f"Model {model_name} zlyhal: {e.code} - {e.message}")
+            last_error = e
+            # Pri 503 (Unavailable), 429 (Rate limit) alebo 404 (Not found) hneď preskakujeme na ďalší
+            continue
+        except Exception as e:
+            logger.warning(f"Model {model_name} vrátil neočakávanú chybu: {e}")
+            last_error = e
+            continue
+
+    raise HTTPException(
+        status_code=503,
+        detail=f"Všetky modely Gemini v zozname zlyhali. Posledná chyba: {str(last_error)}",
+    )
 
 
 @app.post("/analyze")
@@ -70,11 +104,8 @@ def analyze_log(request: LogRequest):
         f"{request.log_text}"
     )
 
-    try:
-        analysis_result = call_gemini_with_retry(prompt)
-        return {"analysis": analysis_result}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Chyba pri volaní Gemini API: {str(e)}",
-        )
+    analysis_text, model_used = generate_with_fallback(prompt)
+    return {
+        "analysis": analysis_text,
+        "model_used": model_used
+    }
