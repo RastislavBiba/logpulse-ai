@@ -158,184 +158,364 @@ def analyze(request: LogRequest):
 
 @app.get("/", response_class=HTMLResponse)
 def index_ui():
-    return """
+  return """
     <!DOCTYPE html>
     <html lang="sk">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>NOTIX s.r.o. | Incident Copilot & LogPulse</title>
-        <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-        <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" rel="stylesheet">
-        <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            notix: {
-                                dark: '#0b132b',
-                                card: '#1c2541',
-                                border: '#3a506b',
-                                cyan: '#00e5ff',
-                                blue: '#48bfe3'
-                            }
-                        }
-                    }
-                }
+        <style>
+            :root {
+                --bg: #0b1120;
+                --card-bg: #151f32;
+                --border: #233554;
+                --cyan: #00e5ff;
+                --cyan-hover: #00b4d8;
+                --text-main: #f1f5f9;
+                --text-muted: #94a3b8;
+                --danger: #f87171;
+                --warning: #fbbf24;
+                --success: #34d399;
             }
-        </script>
-    </head>
-    <body class="bg-[#0b1120] text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
-        <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                background-color: var(--bg);
+                color: var(--text-main);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.5;
+                padding: 2rem 1rem;
+            }
+            .container { max-width: 1050px; margin: 0 auto; }
+            
+            /* Header */
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 1.5rem;
+                margin-bottom: 2rem;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+            .brand-box { display: flex; align-items: center; gap: 0.85rem; }
+            .logo-badge {
+                width: 44px;
+                height: 44px;
+                background: linear-gradient(135deg, #00e5ff, #0077b6);
+                color: #0b1120;
+                font-weight: 900;
+                font-size: 1.4rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+                box-shadow: 0 4px 14px rgba(0, 229, 255, 0.25);
+            }
+            .brand-title { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+            .brand-tag {
+                font-size: 0.7rem;
+                background: rgba(0, 229, 255, 0.1);
+                color: var(--cyan);
+                border: 1px solid rgba(0, 229, 255, 0.3);
+                padding: 0.15rem 0.45rem;
+                border-radius: 4px;
+            }
+            .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+            .live-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45rem;
+                background: rgba(52, 211, 153, 0.1);
+                border: 1px solid rgba(52, 211, 153, 0.3);
+                color: var(--success);
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 0.4rem 0.8rem;
+                border-radius: 9999px;
+            }
+            .live-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background-color: var(--success);
+                box-shadow: 0 0 8px var(--success);
+            }
 
-            <!-- NOTIX Header -->
-            <header class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
-                <div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black text-xl text-black shadow-lg shadow-cyan-500/20">
-                            N
+            /* Main Input Card */
+            .card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            }
+            .input-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.75rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .label { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; }
+            .chips-group { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+            .chips-label { font-size: 0.75rem; color: var(--text-muted); }
+            .chip-btn {
+                background: #0f172a;
+                border: 1px solid var(--border);
+                color: var(--cyan);
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .chip-btn:hover { background: var(--border); color: #fff; }
+
+            textarea {
+                width: 100%;
+                background: #070b14;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                font-size: 0.8rem;
+                color: var(--cyan);
+                outline: none;
+                resize: vertical;
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+                transition: border-color 0.2s;
+            }
+            textarea:focus { border-color: var(--cyan); }
+
+            .input-bottom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 1rem;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+            .helper-text { font-size: 0.75rem; color: var(--text-muted); }
+            .submit-btn {
+                background: linear-gradient(135deg, var(--cyan), #0077b6);
+                color: #0b1120;
+                font-weight: 800;
+                font-size: 0.9rem;
+                padding: 0.75rem 1.6rem;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 14px rgba(0, 229, 255, 0.3);
+            }
+            .submit-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+            .submit-btn:active { transform: translateY(0); }
+
+            /* Loader */
+            #loader { text-align: center; padding: 3rem 0; display: none; }
+            .spinner {
+                display: inline-block;
+                width: 42px;
+                height: 42px;
+                border: 4px solid rgba(0, 229, 255, 0.2);
+                border-top-color: var(--cyan);
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .loader-text { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+
+            /* Results Grid */
+            #results { display: none; margin-bottom: 2rem; }
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .metric-card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1rem;
+            }
+            .metric-title { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; }
+            .metric-value { font-size: 1.2rem; font-weight: 800; margin-top: 0.3rem; }
+            
+            .two-cols {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .detail-card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                padding: 1.25rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.75rem;
+            }
+            .card-title { font-size: 0.9rem; font-weight: 700; color: #fff; }
+            .copy-btn {
+                background: #0f172a;
+                border: 1px solid var(--border);
+                color: var(--text-muted);
+                font-size: 0.7rem;
+                padding: 0.25rem 0.5rem;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .copy-btn:hover { color: #fff; border-color: var(--cyan); }
+
+            .code-block {
+                background: #070b14;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 0.85rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                font-size: 0.8rem;
+                color: var(--warning);
+                overflow-x: auto;
+                word-break: break-all;
+            }
+            .client-card {
+                background: linear-gradient(145deg, #151f32, #0d1527);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                padding: 1.25rem;
+            }
+            .summary-text { font-size: 0.9rem; font-style: italic; color: #cbd5e1; margin-top: 0.5rem; }
+
+            /* Footer */
+            footer {
+                border-top: 1px solid var(--border);
+                padding-top: 1.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            
+            <header class="header">
+                <div class="brand-box">
+                    <div class="logo-badge">N</div>
+                    <div>
+                        <div class="brand-title">
+                            NOTIX <span class="brand-tag">s.r.o.</span>
+                            <span style="color: var(--border); font-weight: 300;">|</span>
+                            <span style="font-size: 1.15rem; color: #cbd5e1;">Incident Swarm & LogPulse</span>
                         </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h1 class="text-2xl font-bold tracking-tight text-white">NOTIX <span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">s.r.o.</span></h1>
-                                <span class="text-slate-500 text-lg">|</span>
-                                <span class="text-slate-300 font-semibold text-lg">Incident Swarm & LogPulse</span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Enterprise Log Management, K8s Profylaxe & AI Multi-Agent Triage</p>
-                        </div>
+                        <div class="subtitle">Enterprise Log Management, K8s Profylaxe & AI Multi-Agent Triage</div>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-3">
-                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 shadow-inner">
-                        <span class="w-2 h-2 mr-2 bg-emerald-400 rounded-full animate-pulse"></span> Azure Production Cluster
-                    </span>
+                <div class="live-badge">
+                    <span class="live-dot"></span> Azure Production Cluster
                 </div>
             </header>
 
-            <!-- Vstupné pole a Prednastavené NOTIX Scenáre -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur mb-8">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-                    <label class="block text-sm font-semibold text-slate-200">
-                        <i class="fa-solid fa-code text-cyan-400 mr-1.5"></i> Vstup incidentu (Stacktrace, Kibana / K8s / Kafka logy):
-                    </label>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="text-slate-400 self-center mr-1">Rýchle enterprise šablóny:</span>
-                        <button onclick="setScenario('elastic')" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-2.5 py-1 rounded transition">Elastic Shards OOM</button>
-                        <button onclick="setScenario('kafka')" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-2.5 py-1 rounded transition">Kafka Consumer Lag</button>
-                        <button onclick="setScenario('k8s')" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-2.5 py-1 rounded transition">AKS CrashLoop</button>
+            <div class="card">
+                <div class="input-top">
+                    <span class="label">Vstup incidentu (Stacktrace, Kibana / K8s / Kafka logy):</span>
+                    <div class="chips-group">
+                        <span class="chips-label">Rýchle enterprise šablóny:</span>
+                        <button type="button" class="chip-btn" onclick="setScenario('elastic')">Elastic Shards OOM</button>
+                        <button type="button" class="chip-btn" onclick="setScenario('kafka')">Kafka Consumer Lag</button>
+                        <button type="button" class="chip-btn" onclick="setScenario('k8s')">AKS CrashLoop</button>
                     </div>
                 </div>
 
-                <textarea id="logInput" rows="6" placeholder="Sem vložte výpis logov z Kibany, kubectl logs alebo CI/CD..." 
-                    class="w-full bg-[#070b14] border border-slate-800 rounded-xl p-4 font-mono text-xs text-cyan-300 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition shadow-inner"></textarea>
+                <textarea id="logInput" rows="6" placeholder="Sem vložte výpis logov z Kibany, kubectl logs alebo CI/CD..."></textarea>
 
-                <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <span class="text-xs text-slate-400">
-                        <i class="fa-solid fa-microchip mr-1"></i> Multi-agent orchestruje: Triage ➔ Root Cause ➔ Remediation ➔ Safety Check
-                    </span>
-                    <button id="runBtn" onclick="analyzeLog()" 
-                        class="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold px-7 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
-                        <i class="fa-solid fa-bolt text-sm"></i> Analyzovať & Vyriešiť Incident
-                    </button>
+                <div class="input-bottom">
+                    <span class="helper-text">⚡ Multi-agent orchestruje: Triage ➔ Root Cause ➔ Remediation ➔ Safety Check</span>
+                    <button id="runBtn" class="submit-btn" onclick="analyzeLog()">Analyzovať & Vyriešiť Incident</button>
                 </div>
             </div>
 
-            <!-- Loading Spinner -->
-            <div id="loader" class="hidden text-center py-14">
-                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-cyan-400 border-t-transparent shadow-lg"></div>
-                <p class="text-slate-300 text-sm font-medium mt-4 tracking-wide">NOTIX Sub-Agenti vyhodnocujú incident a SLA dopad...</p>
+            <div id="loader">
+                <div class="spinner"></div>
+                <div class="loader-text">NOTIX Sub-Agenti vyhodnocujú incident a SLA dopad...</div>
             </div>
 
-            <!-- Výsledný NOTIX Dashboard -->
-            <div id="results" class="hidden space-y-6">
-
-                <!-- Metriky incidentu -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
-                        <div class="text-[11px] text-slate-400 font-semibold tracking-wider">SEVERITY</div>
-                        <div id="resSeverity" class="text-xl font-extrabold mt-1 text-rose-400">CRITICAL</div>
+            <div id="results">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">SEVERITY</div>
+                        <div id="resSeverity" class="metric-value" style="color: var(--danger);">CRITICAL</div>
                     </div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
-                        <div class="text-[11px] text-slate-400 font-semibold tracking-wider">STACK & KATEGÓRIA</div>
-                        <div id="resCategory" class="text-base font-bold mt-1 text-cyan-300 truncate">Elastic Stack</div>
+                    <div class="metric-card">
+                        <div class="metric-title">STACK & KATEGÓRIA</div>
+                        <div id="resCategory" class="metric-value" style="color: var(--cyan); font-size: 1rem;">Elastic Stack</div>
                     </div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
-                        <div class="text-[11px] text-slate-400 font-semibold tracking-wider">SLA RISK</div>
-                        <div id="resSla" class="text-lg font-bold mt-1 text-amber-400">HIGH</div>
+                    <div class="metric-card">
+                        <div class="metric-title">SLA RISK</div>
+                        <div id="resSla" class="metric-value" style="color: var(--warning);">HIGH</div>
                     </div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
-                        <div class="text-[11px] text-slate-400 font-semibold tracking-wider">SAFETY VERDICT</div>
-                        <div id="resSafety" class="text-lg font-bold mt-1 text-emerald-400">SAFE</div>
+                    <div class="metric-card">
+                        <div class="metric-title">SAFETY VERDICT</div>
+                        <div id="resSafety" class="metric-value" style="color: var(--success);">SAFE</div>
                     </div>
                 </div>
 
-                <!-- Detaily od sub-agentov -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    <!-- Root Cause -->
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                <div class="two-cols">
+                    <div class="detail-card">
                         <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                                    <i class="fa-solid fa-magnifying-glass text-cyan-400"></i> Root Cause Analyzer
-                                </h3>
-                                <span id="resComponent" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono"></span>
+                            <div class="card-header">
+                                <span class="card-title">🔍 Root Cause Analyzer</span>
+                                <span id="resComponent" style="font-size: 0.75rem; background: #0f172a; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;"></span>
                             </div>
-                            <p id="resRootCause" class="text-slate-300 text-sm leading-relaxed"></p>
+                            <p id="resRootCause" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;"></p>
                         </div>
-                        <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                            <span>Spracované cez: <span id="resModel" class="font-mono text-cyan-400"></span></span>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                            Model: <span id="resModel" style="color: var(--cyan); font-family: monospace;"></span>
                         </div>
                     </div>
 
-                    <!-- Remediation Script -->
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                    <div class="detail-card">
                         <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                                    <i class="fa-solid fa-terminal text-emerald-400"></i> Auto-Remediation Runbook
-                                </h3>
-                                <button onclick="copyCode()" class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition">
-                                    <i class="fa-regular fa-copy mr-1"></i> Kopírovať
-                                </button>
+                            <div class="card-header">
+                                <span class="card-title">⚙️ Auto-Remediation Runbook</span>
+                                <button class="copy-btn" onclick="copyCode()">Kopírovať</button>
                             </div>
-                            <div class="bg-[#070b14] p-3.5 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 overflow-x-auto shadow-inner">
-                                <code id="resCmd"></code>
-                            </div>
+                            <div class="code-block"><code id="resCmd"></code></div>
                         </div>
-                        <p class="text-[11px] text-slate-400 mt-3">
-                            <i class="fa-solid fa-shield-check text-emerald-400 mr-1"></i> Overené Safety Auditorom pred spustením na produkcii.
-                        </p>
+                        <div style="font-size: 0.75rem; color: var(--success); margin-top: 1rem;">
+                            ✓ Overené Safety Auditorom pred spustením.
+                        </div>
                     </div>
-
                 </div>
 
-                <!-- Client Communication Summary (Pre Jiru / Zákazníka) -->
-                <div class="bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-800 p-5 rounded-2xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                            <i class="fa-regular fa-paper-plane text-cyan-400"></i> NOTIX Client & Ticket Summary (Jira / SLA)
-                        </h3>
-                        <button onclick="copySummary()" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded transition">Kopírovať report</button>
+                <div class="client-card">
+                    <div class="card-header">
+                        <span class="card-title">📋 NOTIX Client & Ticket Summary (Jira / SLA)</span>
+                        <button class="copy-btn" onclick="copySummary()">Kopírovať report</button>
                     </div>
-                    <p id="resSummary" class="text-sm text-slate-300 italic leading-relaxed"></p>
+                    <p id="resSummary" class="summary-text"></p>
                 </div>
-
             </div>
 
-            <!-- Footer -->
-            <footer class="mt-14 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-400">
-                <div>
-                    Navrhnuté pre enterprise infraštruktúru a konzultácie <span class="text-slate-300 font-medium">NOTIX s.r.o.</span>
-                </div>
-                <div class="flex gap-4">
-                    <span>Elastic & SIEM</span>
-                    <span>•</span>
-                    <span>Cloud & DevOps</span>
-                    <span>•</span>
-                    <span>Integrations</span>
-                </div>
+            <footer>
+                <div>Navrhnuté pre enterprise infraštruktúru a konzultácie <strong style="color: #fff;">NOTIX s.r.o.</strong></div>
+                <div>Elastic & SIEM • Cloud & DevOps • Integrations</div>
             </footer>
 
         </div>
@@ -358,8 +538,8 @@ def index_ui():
                     return;
                 }
 
-                document.getElementById('loader').classList.remove('hidden');
-                document.getElementById('results').classList.add('hidden');
+                document.getElementById('loader').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
 
                 try {
                     const response = await fetch('/analyze', {
@@ -381,11 +561,11 @@ def index_ui():
                     document.getElementById('resCmd').innerText = data.remediation_cmd;
                     document.getElementById('resSummary').innerText = data.client_summary;
 
-                    document.getElementById('results').classList.remove('hidden');
+                    document.getElementById('results').style.display = 'block';
                 } catch(e) {
                     alert("Chyba: " + e.message);
                 } finally {
-                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('loader').style.display = 'none';
                 }
             }
 
@@ -404,3 +584,4 @@ def index_ui():
     </body>
     </html>
     """
+
