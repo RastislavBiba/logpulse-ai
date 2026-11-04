@@ -4,18 +4,18 @@ from main import app
 client = TestClient(app)
 
 def test_read_root():
-    """Testuje, či úvodný endpoint vracia HTTP 200 a správny stav."""
+    """Overí, že úvodné HTML UI sa načíta s kódom 200 a obsahuje brand NOTIX."""
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["status"] == "online"
+    assert "NOTIX" in response.text
 
 def test_health_check():
-    """Testuje health endpoint pre kontajnery a orchestráciu."""
+    """Overí health endpoint pre orchestráciu kontajnera."""
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
 
 def test_analyze_validation_error():
-    """Testuje Pydantic validáciu - odoslanie neplatného prázdneho logu musí vrátiť 422."""
+    """Overí Pydantic validáciu krátkeho vstupu (očakáva 422)."""
     response = client.post("/analyze", json={"log_text": "err"})
     assert response.status_code == 422
