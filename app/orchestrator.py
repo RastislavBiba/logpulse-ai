@@ -80,11 +80,11 @@ def orchestrate_incident(raw_log: str) -> FinalIncidentReport:
             warning="Bezpečnostná kontrola nebola dostupná."
         )
 
-    # 5. Client Summary
+    # 5. Client Summary (Klientský souhrn pro Jira / SLA report)
     client_summary = (
-        f"Zaznamenaný incident na komponente {triage.component} ({triage.stack_category}) "
-        f"so závažnosťou {triage.severity}. Príčina: {root_cause.root_cause} "
-        f"Bezpečnostné overenie: {safety.verdict}."
+        f"Zaznamenán incident na komponentě {triage.component} ({triage.stack_category}) "
+        f"se závažností {triage.severity}. Příčina: {root_cause.root_cause} "
+        f"Bezpečnostní ověření opravného postupu: {safety.verdict}."
     )
 
     # 6. LLMOps Výpočet (Cena a Latencia)

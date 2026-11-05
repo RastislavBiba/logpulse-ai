@@ -1,6 +1,6 @@
 def get_dashboard_html() -> str:
     return """<!DOCTYPE html>
-<html lang="sk">
+<html lang="cs">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -269,7 +269,7 @@ def get_dashboard_html() -> str:
                 </div>
             </div>
             <div class="live-badge">
-                <span class="live-dot"></span> Azure Production Cluster
+                <span class="live-dot"></span> Azure Produkční Cluster
             </div>
         </header>
 
@@ -277,51 +277,51 @@ def get_dashboard_html() -> str:
             <div class="input-top">
                 <span class="label">Vstup incidentu (Stacktrace, Kibana / K8s / Kafka logy):</span>
                 <div class="chips-group">
-                    <span class="chips-label">Rýchle enterprise šablóny:</span>
+                    <span class="chips-label">Rychlé podnikové šablony:</span>
                     <button type="button" class="chip-btn" onclick="setScenario('elastic')">Elastic Shards OOM</button>
                     <button type="button" class="chip-btn" onclick="setScenario('kafka')">Kafka Consumer Lag</button>
                     <button type="button" class="chip-btn" onclick="setScenario('k8s')">AKS CrashLoop</button>
                 </div>
             </div>
 
-            <textarea id="logInput" rows="6" placeholder="Sem vložte výpis logov z Kibany, kubectl logs alebo CI/CD..."></textarea>
+            <textarea id="logInput" rows="6" placeholder="Sem vložte výpis logů z Kibany, kubectl logs nebo CI/CD..."></textarea>
 
             <div class="input-bottom">
                 <span class="helper-text">⚡ Multi-agent orchestruje: Triage ➔ Root Cause ➔ Remediation ➔ Safety Check</span>
-                <button id="runBtn" class="submit-btn" onclick="analyzeLog()">Analyzovať & Vyriešiť Incident</button>
+                <button id="runBtn" class="submit-btn" onclick="analyzeLog()">Analyzovat & Vyřešit Incident</button>
             </div>
         </div>
 
         <div id="loader">
             <div class="spinner"></div>
-            <div class="loader-text">NOTIX Sub-Agenti vyhodnocujú incident a merajú tokeny...</div>
+            <div class="loader-text">NOTIX Sub-Agenti vyhodnocují incident a měří tokeny...</div>
         </div>
 
         <div id="results">
 
             <!-- LLMOps Observability Bar -->
             <div class="llmops-bar">
-                <div class="llmops-item">⏱️ Latencia: <span id="resLatency" class="llmops-val">0.0s</span></div>
-                <div class="llmops-item">📊 Spotreba tokenov: <span id="resTokens" class="llmops-val">0</span> (in: <span id="resInTokens">0</span>, out: <span id="resOutTokens">0</span>)</div>
+                <div class="llmops-item">⏱️ Latence: <span id="resLatency" class="llmops-val">0.0s</span></div>
+                <div class="llmops-item">📊 Spotřeba tokenů: <span id="resTokens" class="llmops-val">0</span> (vstup: <span id="resInTokens">0</span>, výstup: <span id="resOutTokens">0</span>)</div>
                 <div class="llmops-item">💰 Cena za incident: <span id="resCost" class="llmops-val">$0.000000</span></div>
-                <div class="llmops-item">🤖 Beh agentov: <span id="resAgentCalls" class="llmops-val">4</span></div>
+                <div class="llmops-item">🤖 Běh agentů: <span id="resAgentCalls" class="llmops-val">4</span></div>
             </div>
 
             <div class="metrics-grid">
                 <div class="metric-card">
-                    <div class="metric-title">SEVERITY</div>
+                    <div class="metric-title">ZÁVAŽNOST</div>
                     <div id="resSeverity" class="metric-value" style="color: var(--danger);">CRITICAL</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">STACK & KATEGÓRIA</div>
+                    <div class="metric-title">STACK & KATEGORIE</div>
                     <div id="resCategory" class="metric-value" style="color: var(--cyan); font-size: 1rem;">Elastic Stack</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">SLA RISK</div>
+                    <div class="metric-title">SLA RIZIKO</div>
                     <div id="resSla" class="metric-value" style="color: var(--warning);">HIGH</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">SAFETY VERDICT</div>
+                    <div class="metric-title">BEZPEČNOSTNÍ VERDIKT</div>
                     <div id="resSafety" class="metric-value" style="color: var(--success);">SAFE</div>
                 </div>
             </div>
@@ -330,7 +330,7 @@ def get_dashboard_html() -> str:
                 <div class="detail-card">
                     <div>
                         <div class="card-header">
-                            <span class="card-title">🔍 Root Cause Analyzer</span>
+                            <span class="card-title">🔍 Analýza kořenové příčiny (Root Cause)</span>
                             <span id="resComponent" style="font-size: 0.75rem; background: #0f172a; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;"></span>
                         </div>
                         <p id="resRootCause" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;"></p>
@@ -344,27 +344,27 @@ def get_dashboard_html() -> str:
                     <div>
                         <div class="card-header">
                             <span class="card-title">⚙️ Auto-Remediation Runbook</span>
-                            <button class="copy-btn" onclick="copyCode()">Kopírovať</button>
+                            <button class="copy-btn" onclick="copyCode()">Kopírovat</button>
                         </div>
                         <div class="code-block"><code id="resCmd"></code></div>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--success); margin-top: 1rem;">
-                        ✓ Overené Safety Auditorom pred spustením.
+                        ✓ Ověřeno bezpečnostním auditorem před spuštěním.
                     </div>
                 </div>
             </div>
 
             <div class="client-card">
                 <div class="card-header">
-                    <span class="card-title">📋 NOTIX Client & Ticket Summary (Jira / SLA)</span>
-                    <button class="copy-btn" onclick="copySummary()">Kopírovať report</button>
+                    <span class="card-title">📋 NOTIX Klientský & Ticket Souhrn (Jira / SLA)</span>
+                    <button class="copy-btn" onclick="copySummary()">Kopírovat report</button>
                 </div>
                 <p id="resSummary" class="summary-text"></p>
             </div>
         </div>
 
         <footer>
-            <div>Navrhnuté pre enterprise infraštruktúru a konzultácie <strong style="color: #fff;">NOTIX s.r.o.</strong></div>
+            <div>Navrženo pro podnikovou infrastrukturu a konzultace <strong style="color: #fff;">NOTIX s.r.o.</strong></div>
             <div>Elastic & SIEM • Cloud & DevOps • LLMOps Unit Economics</div>
         </footer>
     </div>
@@ -383,7 +383,7 @@ def get_dashboard_html() -> str:
         async function analyzeLog() {
             const text = document.getElementById('logInput').value;
             if(!text || text.length < 5) {
-                alert("Zadajte prosím platný log (aspoň 5 znakov).");
+                alert("Zadejte prosím platný log (alespoň 5 znaků).");
                 return;
             }
 
@@ -397,7 +397,7 @@ def get_dashboard_html() -> str:
                     body: JSON.stringify({ log_text: text })
                 });
 
-                if(!response.ok) throw new Error("Chyba spracovania: " + response.statusText);
+                if(!response.ok) throw new Error("Chyba zpracování: " + response.statusText);
                 const data = await response.json();
 
                 // LLMOps Metriky
@@ -431,13 +431,13 @@ def get_dashboard_html() -> str:
         function copyCode() {
             const code = document.getElementById('resCmd').innerText;
             navigator.clipboard.writeText(code);
-            alert("Remediation príkaz bol skopírovaný!");
+            alert("Příkaz byl zkopírován do schránky!");
         }
 
         function copySummary() {
             const text = document.getElementById('resSummary').innerText;
             navigator.clipboard.writeText(text);
-            alert("Zhrnutie pre ticket/klienta bolo skopírované!");
+            alert("Souhrn pro ticket byl zkopírován do schránky!");
         }
     </script>
 </body>
