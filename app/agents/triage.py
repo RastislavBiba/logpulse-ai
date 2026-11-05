@@ -7,7 +7,6 @@ from app.schemas import TriageResult
 logger = logging.getLogger("notix-triage")
 
 def extract_and_parse_json(text: str) -> dict:
-    """Extrahuje a bezpečne sparsobue JSON z odpovede LLM."""
     cleaned = text.strip()
     if cleaned.startswith("```json"):
         cleaned = cleaned[7:]
@@ -20,20 +19,15 @@ def extract_and_parse_json(text: str) -> dict:
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        # Ak model pridal text pred alebo za JSON, regexom nájdeme prvý blok {...}
         match = re.search(r"\{.*\}", cleaned, re.DOTALL)
         if match:
             try:
                 return json.loads(match.group(0))
             except json.JSONDecodeError:
                 pass
-        raise ValueError(f"Nepodarilo sa extrahovať validný JSON z textu: {text[:150]}...")
+        raise ValueError(f"Nepodarilo sa extrahovať validný JSON: {text[:150]}...")
 
-def clean_json_string(text: str) -> str:
-    """Spätná kompatibilita pre importy v ostatných agentoch."""
-    return json.dumps(extract_and_parse_json(text))
-
-def run_triage_agent(raw_log: str) -> tuple[TriageResult, str]:
+def run_triage_agent(raw_log: str) -> tuple[TriageResult, str, int, int]:
     prompt = f"""
     Si Triage & Classification Agent pre NOTIX s.r.o.
     Analyzuj surový log, identifikuj komponent a klasifikuj závažnosť.
@@ -41,7 +35,7 @@ def run_triage_agent(raw_log: str) -> tuple[TriageResult, str]:
     Log:
     {raw_log}
 
-    Vráť VÝLUČNE validný JSON bez markdown syntaxe v tomto formáte:
+    Vráť VÝLUČNE validný JSON bez markdown syntaxe:
     {{
       "severity": "CRITICAL",
       "stack_category": "Elastic Stack / SIEM",
@@ -50,14 +44,14 @@ def run_triage_agent(raw_log: str) -> tuple[TriageResult, str]:
     }}
     """
     try:
-        raw_res, model = query_gemini(prompt)
+        raw_res, model, p_tokens, o_tokens, _ = query_gemini(prompt)
         data = extract_and_parse_json(raw_res)
-        return TriageResult(**data), model
+        return TriageResult(**data), model, p_tokens, o_tokens
     except Exception as e:
-        logger.error(f"Triage agent zlyhal, použijem bezpečný fallback: {e}")
+        logger.error(f"Triage agent zlyhal, použijem fallback: {e}")
         return TriageResult(
             severity="HIGH",
-            stack_category="General DevOps / Infrastructure",
+            stack_category="General Infrastructure",
             component="Unknown Service",
             clean_error=raw_log.strip().split("\n")[-1][:200]
-        ), "fallback"
+        ), "fallback", 0, 0

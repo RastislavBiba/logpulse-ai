@@ -23,6 +23,14 @@ class SafetyResult(BaseModel):
     risk_score: int = Field(description="Skóre rizika od 1 (bezpečné) po 5 (deštruktívne)")
     warning: str | None = Field(default=None, description="Varovanie v prípade rizika")
 
+class LLMOpsMetrics(BaseModel):
+    total_prompt_tokens: int = Field(default=0, description="Celkový počet vstupných tokenov")
+    total_output_tokens: int = Field(default=0, description="Celkový počet vygenerovaných tokenov")
+    total_tokens: int = Field(default=0, description="Súčet tokenov všetkých agentov")
+    total_latency_seconds: float = Field(default=0.0, description="Celkový čas spracovania v sekundách")
+    estimated_cost_usd: float = Field(default=0.0, description="Odhadované náklady v USD")
+    agent_calls_count: int = Field(default=0, description="Počet vykonaných volaní modelov")
+
 class FinalIncidentReport(BaseModel):
     severity: str
     stack_category: str
@@ -33,3 +41,4 @@ class FinalIncidentReport(BaseModel):
     safety_verdict: str
     client_summary: str
     model_used: str
+    llmops: LLMOpsMetrics = Field(default_factory=LLMOpsMetrics)

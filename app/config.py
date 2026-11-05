@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from google import genai
 from google.genai.errors import APIError
@@ -9,7 +10,6 @@ logger = logging.getLogger("notix-copilot")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
-# Aktuálne aktívne modely pre Gemini API v1beta
 PREFERRED_MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-3.8-flash",
@@ -18,12 +18,18 @@ PREFERRED_MODELS = [
     "gemini-2.5-flash",
 ]
 
-def query_gemini(prompt: str) -> tuple[str, str]:
-    """Vykoná dopyt na Gemini s automatickým prepínaním na záložný model pri chybe."""
+
+def query_gemini(prompt: str) -> tuple[str, str, int, int, float]:
+    """
+    Vykoná dopyt na Gemini s fallbackom a zbiera LLMOps metriky:
+    Vráti: (text_odpovede, pouzity_model, prompt_tokens, output_tokens, latency_seconds)
+    """
     if not client:
         raise RuntimeError("GEMINI_API_KEY nie je nakonfigurovaný.")
 
     last_error = None
+    start_time = time.perf_counter()
+
     for model_name in PREFERRED_MODELS:
         try:
             response = client.models.generate_content(
@@ -31,7 +37,17 @@ def query_gemini(prompt: str) -> tuple[str, str]:
                 contents=prompt,
             )
             if response and response.text:
-                return response.text, model_name
+                latency = round(time.perf_counter() - start_time, 3)
+
+                # Získanie tokenov z metadát odpovede
+                prompt_tokens = 0
+                output_tokens = 0
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    prompt_tokens = getattr(response.usage_metadata, "prompt_token_count", 0) or 0
+                    output_tokens = getattr(response.usage_metadata, "candidates_token_count", 0) or 0
+
+                return response.text, model_name, prompt_tokens, output_tokens, latency
+
         except APIError as e:
             logger.warning(f"Model {model_name} zlyhal ({e.code}): {e.message}")
             last_error = e

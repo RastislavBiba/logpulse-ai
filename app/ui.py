@@ -1,11 +1,10 @@
 def get_dashboard_html() -> str:
-    """Vráti vstavané HTML/CSS rozhranie pre NOTIX Incident Command Center."""
     return """<!DOCTYPE html>
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOTIX s.r.o. | Incident Copilot & LogPulse</title>
+    <title>NOTIX s.r.o. | Incident Copilot & LLMOps</title>
     <style>
         :root {
             --bg: #0b1120;
@@ -17,6 +16,7 @@ def get_dashboard_html() -> str:
             --danger: #f87171;
             --warning: #fbbf24;
             --success: #34d399;
+            --purple: #c084fc;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -122,7 +122,6 @@ def get_dashboard_html() -> str:
             outline: none;
             resize: vertical;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-            transition: border-color 0.2s;
         }
         textarea:focus { border-color: var(--cyan); }
         .input-bottom {
@@ -159,7 +158,25 @@ def get_dashboard_html() -> str:
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .loader-text { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+
         #results { display: none; margin-bottom: 2rem; }
+
+        /* LLMOps Bar */
+        .llmops-bar {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px dashed var(--purple);
+            border-radius: 12px;
+            padding: 0.85rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .llmops-item { font-size: 0.8rem; color: var(--text-muted); }
+        .llmops-val { font-weight: 800; color: var(--purple); font-family: ui-monospace, monospace; }
+
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -246,7 +263,7 @@ def get_dashboard_html() -> str:
                     <div class="brand-title">
                         NOTIX <span class="brand-tag">s.r.o.</span>
                         <span style="color: var(--border); font-weight: 300;">|</span>
-                        <span style="font-size: 1.15rem; color: #cbd5e1;">Incident Swarm & LogPulse</span>
+                        <span style="font-size: 1.15rem; color: #cbd5e1;">Incident Swarm & LLMOps</span>
                     </div>
                     <div class="subtitle">Enterprise Log Management, K8s Profylaxe & AI Multi-Agent Triage</div>
                 </div>
@@ -277,10 +294,19 @@ def get_dashboard_html() -> str:
 
         <div id="loader">
             <div class="spinner"></div>
-            <div class="loader-text">NOTIX Sub-Agenti vyhodnocujú incident a SLA dopad...</div>
+            <div class="loader-text">NOTIX Sub-Agenti vyhodnocujú incident a merajú tokeny...</div>
         </div>
 
         <div id="results">
+
+            <!-- LLMOps Observability Bar -->
+            <div class="llmops-bar">
+                <div class="llmops-item">⏱️ Latencia: <span id="resLatency" class="llmops-val">0.0s</span></div>
+                <div class="llmops-item">📊 Spotreba tokenov: <span id="resTokens" class="llmops-val">0</span> (in: <span id="resInTokens">0</span>, out: <span id="resOutTokens">0</span>)</div>
+                <div class="llmops-item">💰 Cena za incident: <span id="resCost" class="llmops-val">$0.000000</span></div>
+                <div class="llmops-item">🤖 Beh agentov: <span id="resAgentCalls" class="llmops-val">4</span></div>
+            </div>
+
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-title">SEVERITY</div>
@@ -339,7 +365,7 @@ def get_dashboard_html() -> str:
 
         <footer>
             <div>Navrhnuté pre enterprise infraštruktúru a konzultácie <strong style="color: #fff;">NOTIX s.r.o.</strong></div>
-            <div>Elastic & SIEM • Cloud & DevOps • Integrations</div>
+            <div>Elastic & SIEM • Cloud & DevOps • LLMOps Unit Economics</div>
         </footer>
     </div>
 
@@ -373,6 +399,16 @@ def get_dashboard_html() -> str:
 
                 if(!response.ok) throw new Error("Chyba spracovania: " + response.statusText);
                 const data = await response.json();
+
+                // LLMOps Metriky
+                if(data.llmops) {
+                    document.getElementById('resLatency').innerText = data.llmops.total_latency_seconds + "s";
+                    document.getElementById('resTokens').innerText = data.llmops.total_tokens;
+                    document.getElementById('resInTokens').innerText = data.llmops.total_prompt_tokens;
+                    document.getElementById('resOutTokens').innerText = data.llmops.total_output_tokens;
+                    document.getElementById('resCost').innerText = "$" + data.llmops.estimated_cost_usd.toFixed(6);
+                    document.getElementById('resAgentCalls').innerText = data.llmops.agent_calls_count;
+                }
 
                 document.getElementById('resSeverity').innerText = data.severity;
                 document.getElementById('resCategory').innerText = data.stack_category;
