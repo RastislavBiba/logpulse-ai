@@ -9,11 +9,13 @@ logger = logging.getLogger("notix-copilot")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
+# Aktuálne aktívne modely pre Gemini API v1beta
 PREFERRED_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
 ]
 
 def query_gemini(prompt: str) -> tuple[str, str]:
